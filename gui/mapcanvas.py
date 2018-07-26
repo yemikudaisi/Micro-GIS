@@ -12,62 +12,43 @@ import mapnik
 from geometry.point import Point
 from events.mapmouseoverevent import MapMouseOverEvent
 from rendering.coordinatetransform import CoordinateTransform
-from gui.maptools import ZoomTool, PanTool
-from resources.resourceprovider import ResourceProvider as rp
+import gui.maptools as toolbox
+import utils
+import data
 
-FLAG_IS_ZOOM_IN_TOOL = "isZoomInTool"
-FLAG_IS_ZOOM_OUT_TOOL = "isZoomOutTool"
-FLAG_IS_ZOOM_ENVELOPE_TOOL = "isZoomEnvelopeTool"
-FLAG_IS_ZOOM_EXETENT_TOOL = "isZoomExtentTool"
-FLAG_IS_PAN_TOOL = "isPanTool"
+class MapCanvas(wx.Panel):
 
-
-class MapPanel(wx.Panel):
+    DEFAULT_MAP_BACKGROUND = mapnik.Color('steelblue')
     def __init__(self, parent):
         wx.Panel.__init__(self, parent=parent, size=wx.Size(800, 500))
+
         self.shapefile = "NIR.shp"
-        panelSizer = wx.BoxSizer(wx.VERTICAL)
-        self.mapCanvas = wx.Panel(self)
-        self.toolbar = self.buildToolbar()
-        panelSizer.Add(self.toolbar, proportion=0, flag=wx.EXPAND)
-        panelSizer.Add(self.mapCanvas, proportion=1, flag=wx.EXPAND)
-        panelSizer.Layout()
-        self.SetSizer(panelSizer)
-
-        self.initFlags()
-        self.bindEventHandlers()
-
-    def initFlags(self):
         self.isFirstPaint = True
         self.isMapReady = False
         self.isToolActive = False
-        self.isZoomInTool = False
-        self.isZoomOutTool = False
-        self.isZoomEnvelopeTool = False
-        self.isZoomExtentTool = False
-        self.isPanTool = False
         self.leftClickDown = False
         self.activeTool = None
+        self.mousePosition = wx.Point()
+        self.mouseDownPosition = wx.Point()
+        self.previousMouseDownPosition = wx.Point()
+        self.wasToolDragged = False
 
-        self.resetMousePositions()
+        self.bindEventHandlers()
+
 
     def bindEventHandlers(self):
         """Bind events to handlers"""
-        self.mapCanvas.Bind(wx.EVT_PAINT, self.onPaint)
-        self.mapCanvas.Bind(wx.EVT_LEFT_DOWN, self.onLeftDown)
-        self.mapCanvas.Bind(wx.EVT_LEFT_UP, self.onLeftUp)
-        self.mapCanvas.Bind(wx.EVT_MOTION, self.onMouseOver)
+        self.Bind(wx.EVT_PAINT, self.onPaint)
+        self.Bind(wx.EVT_LEFT_DOWN, self.onLeftDown)
+        self.Bind(wx.EVT_LEFT_UP, self.onLeftUp)
+        self.Bind(wx.EVT_MOTION, self.onMouseOver)
 
-    def activateTool(self, flagName):
+    def activateTool(self, toolName):
         """Activate a tools by prepending 'is' and appending 'Tool'
         to the supplied flag name and setting the instance flag to false
         """
-        # find . type f -name '*.pyc' -delete
-        self.deactivateTool(self.activeTool)
-        if (self.checkAttr(flagName)):
-            self.isToolActive = True
-            setattr(self, flagName, True)
-            self.activeTool = flagName
+        self.activeTool = toolNameName
+        self.isToolActive = True
 
     def deactivateTool(self, flagName):
         """Deactivates a tools by prepending 'is' and appending 'Tool'
@@ -78,113 +59,68 @@ class MapPanel(wx.Panel):
         if (flagName is None):
             return
 
-            # toggle off the button for the active tool
-        tool = getattr(self, "tb" + flagName[2:])
-        self.toolbar.ToggleTool(id=tool.GetId(), toggle=False)
-
         # check if an instance attribute exists for the supplied flag
-        if (self.checkAttr(flagName)):
+        if (utils.checkAttr(flagName)):
             self.isToolActive = False
             # set the flag for the active tool to false
             setattr(self, flagName, False)
             self.activeTool = None
 
-    def checkAttr(self, attrName):
-        """ Checks if an attribute exist otherwise raise an error"""
-
-        if not hasattr(self, attrName):
-            raise AttributeError('module has no attribute ' + attrName)
-            return False
-        return True
-
     def createMap(self):
         """Create map"""
 
-        self.map = mapnik.Map(self.mapCanvas.GetSize().GetWidth(), self.mapCanvas.GetSize().GetHeight());
-        self.map.background = mapnik.Color('steelblue')
+        self.map = mapnik.Map(self.GetSize().GetWidth(), self.GetSize().GetHeight());
+        self.map.background = self.DEFAULT_MAP_BACKGROUND
+        self.addStyle('My Style', self.defaultPolygonStyle())
+        ds = data.ShapeFileDataSource(data.sourceTypes.SHAPE_FILE,'demo-data/NIR.shp')
+        self.addLayer(ds.layer('Nigeria'))
+        if (not self.isMapReady):
+            self.map.zoom_all()
+        self.isMapReady = True;
+
+    def addLayer(self, layer):
+        self.map.layers.append(layer)
+
+    def addStyle(self, styleName, style):
+        self.map.append_style(styleName, style)
+
+    def defaultPolygonStyle(self):
         s = mapnik.Style()
         r = mapnik.Rule()
         polygon_symbolizer = mapnik.PolygonSymbolizer()
         polygon_symbolizer.fill = mapnik.Color('#929857')
         r.symbols.append(polygon_symbolizer)
-
         line_symbolizer = mapnik.LineSymbolizer()
         line_symbolizer.stroke = mapnik.Color('#000000')
         line_symbolizer.stroke_width = 0.5
-
         r.symbols.append(line_symbolizer)
         s.rules.append(r)
-        self.map.append_style('My Style', s)
-        ds = mapnik.Shapefile(file='demo-data/NIR.shp')
-        layer = mapnik.Layer('world')
-        layer.datasource = ds
-        layer.styles.append('My Style')
-        self.map.layers.append(layer)
-        if (self.isFirstPaint):
-            self.map.zoom_all()
-            self.isFirstPaint = False
-        self.isMapReady = True;
+        return s
 
     def createMapImage(self):
         """Draw map to Bitmap object"""
         # create a Image32 object
-        image = mapnik.Image(self.mapCanvas.GetClientSize().GetWidth(), self.mapCanvas.GetClientSize().GetHeight())
+        image = mapnik.Image(self.GetClientSize().GetWidth(), self.GetClientSize().GetHeight())
         # render map to Image32 object
         mapnik.render(self.map, image)
         # load raw data from Image32 to bitmap
-        self.bmp = wx.BitmapFromBufferRGBA(self.mapCanvas.GetClientSize().GetWidth(),
-                                           self.mapCanvas.GetClientSize().GetHeight(), image.tostring())
+        self.bmp = wx.BitmapFromBufferRGBA(self.GetClientSize().GetWidth(),
+                                           self.GetClientSize().GetHeight(), image.tostring())
 
     def updateMap(self):
         if (not self.isMapReady):
             self.createMap()
             self.isMapReady = True
         else:
-            self.map.resize(self.mapCanvas.GetSize().GetWidth(), self.mapCanvas.GetSize().GetHeight())
+            self.map.resize(self.GetSize().GetWidth(), self.GetSize().GetHeight())
 
         self.createMapImage()
-        dc = wx.PaintDC(self.mapCanvas)
+        dc = wx.PaintDC(self)
         memoryDC = wx.MemoryDC(self.bmp)
         # draw map to dc
-        dc.Blit(0, 0, self.mapCanvas.GetClientSize().GetWidth(), self.mapCanvas.GetClientSize().GetHeight(), memoryDC,
+        dc.Blit(0, 0, self.GetClientSize().GetWidth(), self.GetClientSize().GetHeight(), memoryDC,
                 0, 0)
 
-    def buildToolbar(self):
-
-        toolbar = wx.ToolBar(self, -1)
-
-        zoomInID = wx.NewId()
-        self.tbZoomInTool = toolbar.AddCheckTool(zoomInID,
-                                                 bitmap=rp.GetIcon("zoom-in"))
-        self.Bind(wx.EVT_TOOL, self.onZoomInTool, self.tbZoomInTool)
-
-        zoomOutID = wx.NewId()
-        self.tbZoomOutTool = toolbar.AddCheckTool(zoomOutID,
-                                                  bitmap=rp.GetIcon("zoom-out"))
-        self.Bind(wx.EVT_TOOL, self.onZoomOutTool, self.tbZoomOutTool)
-
-        toolbar.AddSeparator()
-
-        panID = wx.NewId()
-        self.tbPanTool = toolbar.AddCheckTool(panID,
-                                              bitmap=rp.GetIcon("pan"))
-        self.Bind(wx.EVT_TOOL, self.onPanTool, self.tbPanTool)
-
-        toolbar.AddSeparator()
-
-        zoomEnvelopeID = wx.NewId()
-        self.tbZoomEnvelopeTool = toolbar.AddCheckTool(zoomEnvelopeID,
-                                                       bitmap=rp.GetIcon("zoom-selection"))
-        self.Bind(wx.EVT_TOOL, self.onZoomEnvelopeTool, self.tbZoomEnvelopeTool)
-
-        zoomExtentID = wx.NewId()
-        self.tbZoomExtentTool = toolbar.AddCheckTool(zoomExtentID,
-                                                     bitmap=rp.GetIcon("zoom-region"))
-        self.Bind(wx.EVT_TOOL, self.onZoomExtentTool, self.tbZoomExtentTool)
-
-        toolbar.Realize()
-
-        return toolbar
 
     def scale_bitmap(self, bitmap, width, height):
         image = wx.ImageFromBitmap(bitmap)
@@ -224,17 +160,17 @@ class MapPanel(wx.Panel):
         if (self.leftClickDown):
             self.wasToolDragged = True
             self.selectTool()
-        transform = CoordinateTransform(self.mapCanvas.GetSize(), self.map.envelope())
+        transform = CoordinateTransform(self.GetSize(), self.map.envelope())
         wx.PostEvent(self, MapMouseOverEvent(transform.getGeoCoord(self.mouseDownPosition)))
 
     def onZoomInTool(self, event):
-        self.activateTool(FLAG_IS_ZOOM_IN_TOOL)
+        self.activateTool(maptools.FLAG_IS_ZOOM_IN_TOOL)
 
     def onZoomOutTool(self, event):
         self.activateTool(FLAG_IS_ZOOM_OUT_TOOL)
 
     def onPanTool(self, event):
-        self.activateTool(FLAG_IS_PAN_TOOL)
+        self.activateTool(toolbox.FLAG_IS_PAN_TOOL)
 
     def onZoomEnvelopeTool(self, event):
         self.activateTool(FLAG_IS_ZOOM_ENVELOPE_TOOL)
@@ -247,19 +183,19 @@ class MapPanel(wx.Panel):
 
     def zoomIn(self):
         tool = ZoomTool(self.map)
-        transform = CoordinateTransform(self.mapCanvas.GetSize(), self.map.envelope())
+        transform = CoordinateTransform(self.GetSize(), self.map.envelope())
         tool.zoomToPoint(transform.getGeoCoord(self.mousePosition))
         self.updateMap()
 
     def zoomOut(self):
-        tool = ZoomTool(self.map)
-        transform = CoordinateTransform(self.mapCanvas.GetSize(), self.map.envelope())
+        tool = toolbox.ZoomTool(self.map)
+        transform = CoordinateTransform(self.GetSize(), self.map.envelope())
         tool.zoomFromPoint(transform.getGeoCoord(self.mousePosition))
         self.updateMap()
 
     def pan(self):
-        tool = PanTool(self.map)
-        transform = CoordinateTransform(self.mapCanvas.GetSize(), self.map.envelope())
+        tool = toolbox.PanTool(self.map)
+        transform = CoordinateTransform(self.GetSize(), self.map.envelope())
         if (self.leftClickDown):
             if (self.previousMouseDownPosition is None):
                 self.previousMouseDownPosition = self.mouseDownPosition
@@ -282,12 +218,15 @@ class MapPanel(wx.Panel):
         if (not self.isToolActive):
             return
         cases = {
-            FLAG_IS_ZOOM_IN_TOOL: self.zoomIn,
-            FLAG_IS_ZOOM_OUT_TOOL: self.zoomOut,
-            FLAG_IS_PAN_TOOL: self.pan
+            toolbox.ZOOM_IN_TOOL: self.zoomIn,
+            toolbox.ZOOM_OUT_TOOL: self.zoomOut,
+            toolbox.PAN_TOOL: self.pan
         }
         func = cases.get(self.activeTool, lambda: "")
         func()
+
+    def setTool(self, tool):
+        self.activateTool()
 
 
 

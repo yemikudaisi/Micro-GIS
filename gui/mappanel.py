@@ -10,7 +10,7 @@ import wx
 import mapnik
 
 from geometry.point import Point
-from events.mapmouseoverevent import MapMouseOverEvent
+from events.mapmouseover import MapMouseOverEvent
 from rendering.coordinatetransform import CoordinateTransform
 from gui.maptools import ZoomTool, PanTool
 from resources.resourceprovider import ResourceProvider as rp
