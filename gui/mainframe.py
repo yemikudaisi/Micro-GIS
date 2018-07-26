@@ -3,6 +3,8 @@ import wx.lib.agw.aui as aui
 import mapnik
 from events.mapmouseevent import EVT_MAP_CLICK
 from gui.mappanel import MapPanel
+from gui.settingspanel import SettingsPanel
+
 
 class MainFrame(wx.Frame):
 
@@ -26,10 +28,10 @@ class MainFrame(wx.Frame):
         sizer.SetSizeHints(treePanel)
         treePanel.Layout()
 
-        self.root = self.treeLayers.AddRoot('Something goes here')
-        self.treeLayers.SetPyData(self.root, ('key', 'value'))
-        os = self.treeLayers.AppendItem(self.root, 'Operating Systems')
-        self.treeLayers.Expand(self.root)
+        #self.root = self.treeLayers.AddRoot('Something goes here')
+        #self.treeLayers.SetPyData(self.root, ('key', 'value'))
+        #os = self.treeLayers.AppendItem(self.root, 'Operating Systems')
+        #self.treeLayers.Expand(self.root)
 
         text2 = wx.TextCtrl(self, -1, "Pane 2 - sample text",
                             wx.DefaultPosition, wx.Size(200,150),
@@ -44,10 +46,18 @@ class MainFrame(wx.Frame):
         self.initComponents()
         # tell the manager to "commit" all the changes just made
         self._mgr.Update()
-
+        self.SetMenuBar(self.buildMenu())
 
         mapPanel.Bind(EVT_MAP_CLICK, self.OnMapClick)
         self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+        self.settings = [False, False, False]
+
+    def onSettings(self, e):
+        settings_dialog = SettingsPanel(self.settings, self)
+        res = settings_dialog.ShowModal()
+        if res == wx.ID_OK:
+            self.settings = settings_dialog.GetSettings()
 
     
     def initComponents(self):
@@ -62,6 +72,25 @@ class MainFrame(wx.Frame):
 
         self.CreateStatusBar()
         self.GetStatusBar().SetStatusText("Ready")
+
+    def buildMenu(self):
+        mb = wx.MenuBar()
+        fileMenu = wx.Menu()
+        fileMenu.Append(wx.ID_ANY, "Open")
+        fileMenu.Append(wx.ID_ANY, "Exit")
+
+        editMenu = wx.Menu()
+        viewMenu = wx.Menu()
+        windowMenu = wx.Menu()
+        helpMenu = wx.Menu()
+
+        mb.Append(fileMenu, "&File")
+        mb.Append(editMenu, "&Edit")
+        mb.Append(viewMenu, "&View")
+        mb.Append(windowMenu, "&Window")
+        mb.Append(helpMenu, "&Help")
+
+        return mb
 
     def OnClose(self, event):
         # deinitialize the frame manager
