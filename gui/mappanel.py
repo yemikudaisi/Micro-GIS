@@ -59,7 +59,7 @@ class MapPanel(wx.Panel):
     def activateTool(self, flagName):
         """Activate a tools by prepending 'is' and appending 'Tool'
         to the supplied flag name and setting the instance flag to false
-        """
+        """#find . type f -name '*.pyc' -delete
         self.deactivateTool(self.activeTool)
         if(self.checkAttr(flagName)):        
             self.isToolActive = True
@@ -203,18 +203,25 @@ class MapPanel(wx.Panel):
         print "leftisup"
         self.leftClickDown = False
         self.mousePosition = event.GetPosition()
-        self.selectTool()
+
+        if(self.wasToolDragged):
+            pass
+        else:
+            self.selectTool()
+
+        self.resetMousePositions()
 
     def resetMousePositions(self):
         self.mousePosition = None
         self.mouseDownPosition = None
         self.previousMouseDownPosition = None
+        self.wasToolDragged = False
     
 
     def onMouseOver(self, event):
         self.mouseDownPosition = event.GetPosition()
         if(self.leftClickDown):
-            print "dragging"
+            self.wasToolDragged = True
             self.selectTool()
         transform = CoordinateTransform(self.mapCanvas.GetSize(), self.map.envelope())
         wx.PostEvent(self, MapMouseOverEvent(transform.getGeoCoord(self.mouseDownPosition)))
@@ -254,22 +261,23 @@ class MapPanel(wx.Panel):
         tool = PanTool(self.map)
         transform = CoordinateTransform(self.mapCanvas.GetSize(), self.map.envelope())
         if(self.leftClickDown):
-            print self.previousMouseDownPosition 
             if(self.previousMouseDownPosition is None):
                 self.previousMouseDownPosition = self.mouseDownPosition
                 return
 
             oldCenter = self.map.envelope().center()
-            diff = self.previousMouseDownPosition - self.mouseDownPosition
+            screenDiff = self.mouseDownPosition - self.previousMouseDownPosition
+            oldScreenCenter = transform.getSreenCoord(Point.fromMapnikCoord(oldCenter))
+            newScreenCenter = oldScreenCenter - Point.fromWxPoint(screenDiff) # subtracted to enable inverse control
+            #todo: add map settings for inverse control
+            tool.pan(newScreenCenter)
 
-            print str(oldCenter)
-            print str(diff)
-            newCenter = mapnik.Coord(oldCenter.x + diff.x, oldCenter.y + diff.y)
-            tool.pan(newCenter)
-            print "drag pan"
+            print "old map center: "+str(oldCenter)
+            print "old screen center: " + str(oldScreenCenter)
+            print "new screen center: " + str(newScreenCenter)
+            self.previousMouseDownPosition = self.mouseDownPosition
         else:
             tool.pan(self.mousePosition)
-            self.resetMousePositions()
 
         self.paintMap()
  
