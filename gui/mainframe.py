@@ -18,7 +18,7 @@ class MainFrame(wx.Frame):
     __SCALE_VALUE_STATUS_FIELD = 4
     __PROJ_STATUS_FIELD = 5
 
-    def __init__(self, parent, id=-1, title="Simple GIS", pos=wx.DefaultPosition,
+    def __init__(self, parent, id=-1, title="GIS Lite", pos=wx.DefaultPosition,
                  size=(800, 600), style=wx.DEFAULT_FRAME_STYLE):
 
         wx.Frame.__init__(self, parent, id, title, pos, size, style)
@@ -31,7 +31,7 @@ class MainFrame(wx.Frame):
         # add the panes to the manager
         self._mgr.AddPane(self.treeLayers, aui.AuiPaneInfo().Left().Caption("Layers"))
         self._mgr.AddPane(self.mapPanel, aui.AuiPaneInfo().CenterPane())
-        self.initComponents()
+        self.initToolbars()
         # tell the manager to "commit" all the changes just made
         self._mgr.Update()
 
@@ -57,7 +57,7 @@ class MainFrame(wx.Frame):
             self.settings = settings_dialog.GetSettings()
 
     
-    def initComponents(self):
+    def initToolbars(self):
         tbMain = aui.AuiToolBar(self, -1, wx.DefaultPosition, wx.DefaultSize,agwStyle=aui.AUI_TB_DEFAULT_STYLE | aui.AUI_TB_OVERFLOW)
         tbMain.SetToolBitmapSize(wx.Size(16, 16))
         tbMain.AddSimpleTool(wx.NewId(),"hello tool",wx.ArtProvider.GetBitmap(wx.ART_FILE_OPEN, size=wx.Size(16, 16)))
