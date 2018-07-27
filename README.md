@@ -1,5 +1,7 @@
-# Simple-GIS
-A simple application showcasing the basics of GIS software development based on Mapnik and WxPython
+# GIS Lite
+A lighweight GIS application based on Mapnik and WxPython
+
+the basics of GIS software development 
 
  ## Features
  - Map tools toolbar
@@ -7,9 +9,10 @@ A simple application showcasing the basics of GIS software development based on 
  - Zoom in and zoom out functionalities.
  - Map panning
  - Pan to envelope and pan to map extent
+ - Layer tree
+ - Dynamic data source allocation
 
   ## Todos
- - Dynamic datasource selection
  - Map tools menus
  - Map printing support
  - more todos
