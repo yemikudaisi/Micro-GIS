@@ -1,7 +1,5 @@
 # GIS Lite
-A lighweight GIS application based on Mapnik and WxPython
-
-the basics of GIS software development 
+A lighweight GIS application based on Mapnik and WxPython. I started this project for the purpose of learning the basics of GIS programming in Python
 
  ## Features
  - Map tools toolbar
