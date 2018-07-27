@@ -18,9 +18,11 @@ from geometry.point import Point
 from events.mapmouseover import MapMouseOverEvent
 from rendering.coordinatetransform import CoordinateTransform
 
+DEFAULT_MAP_BACKGROUND = mapnik.Color('#3c3F41')
+DEFAULT_FILL_COLOR = mapnik.Color('#3c3F41')
+DEFAULT_LINE_COLOR = mapnik.Color('#87939A')
 
 class MapCanvas(wx.Panel):
-    DEFAULT_MAP_BACKGROUND = mapnik.Color('steelblue')
 
     def __init__(self, parent):
         wx.Panel.__init__(self, parent=parent, size=wx.Size(800, 500))
@@ -44,7 +46,7 @@ class MapCanvas(wx.Panel):
         """Create map"""
 
         self.map = mapnik.Map(self.GetSize().GetWidth(), self.GetSize().GetHeight());
-        self.map.background = self.DEFAULT_MAP_BACKGROUND
+        self.map.background = DEFAULT_MAP_BACKGROUND
         self.addStyle('default', self.defaultPolygonStyle())
         ds = data.ShapeFileDataSource(data.sourceTypes.SHAPE_FILE, 'demo-data/NIR.shp')
         nigeria = ds.layer("Nigeria")
@@ -108,10 +110,10 @@ class MapCanvas(wx.Panel):
         s = mapnik.Style()
         r = mapnik.Rule()
         polygon_symbolizer = mapnik.PolygonSymbolizer()
-        polygon_symbolizer.fill = mapnik.Color('#929857')
+        polygon_symbolizer.fill = DEFAULT_FILL_COLOR
         r.symbols.append(polygon_symbolizer)
         line_symbolizer = mapnik.LineSymbolizer()
-        line_symbolizer.stroke = mapnik.Color('#000000')
+        line_symbolizer.stroke = DEFAULT_LINE_COLOR
         line_symbolizer.stroke_width = 0.5
         r.symbols.append(line_symbolizer)
         s.rules.append(r)

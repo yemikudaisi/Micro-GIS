@@ -1,10 +1,10 @@
 import wx
 import mapnik
-from gui.mainframe import MainFrame
+import gui
 
 app = wx.App(0)
 
-frame = MainFrame(None)
+frame = gui.MainFrame(None)
 app.SetTopWindow(frame)
 frame.Show()
 #frame.LoadMap()
