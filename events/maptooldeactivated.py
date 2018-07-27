@@ -1,17 +1,21 @@
 import wx
 import wx.lib.newevent
-from events import MapToolDeactivatedEvent
-import gui.maptools as toolbox
 
+from gui.maptools import validateToolType
+
+MapToolDeactivatedEventType, EVT_MAP_TOOL_DEACTIVATED= wx.lib.newevent.NewCommandEvent()
+
+MapToolDeactivatedEventType = wx.NewEventType()
+EVT_MAP_TOOL_DEACTIVATED = wx.PyEventBinder(MapToolDeactivatedEventType, 0)
 
 class MapToolDeactivatedEvent(wx.PyEvent):
-    eventType = MapToolDeactivatedEvent
+    eventType = MapToolDeactivatedEventType
 
     def __init__(self, toolType):
-        toolbox.validateToolType(toolType)
+        validateToolType(toolType)
         wx.PyEvent.__init__(self, eventType=self.eventType) 
         self.__toolType = toolType
 
     @property
-    def type(self):
+    def toolType(self):
         return self.__toolType

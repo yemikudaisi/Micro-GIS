@@ -9,32 +9,51 @@ yemikudaisi.github.io
 import wx
 import mapnik
 
-from geometry.point import Point
-from events.mapmouseoverevent import MapMouseOverEvent
-from rendering.coordinatetransform import CoordinateTransform
+import events
 import gui.maptools as toolbox
-import utils
 import data
+from geometry import Scale
+
+from geometry.point import Point
+from events.mapmouseover import MapMouseOverEvent
+from rendering.coordinatetransform import CoordinateTransform
+
 
 class MapCanvas(wx.Panel):
-
     DEFAULT_MAP_BACKGROUND = mapnik.Color('steelblue')
+
     def __init__(self, parent):
         wx.Panel.__init__(self, parent=parent, size=wx.Size(800, 500))
 
         self.shapefile = "NIR.shp"
-        self.isFirstPaint = True
         self.isMapReady = False
         self.isToolActive = False
         self.leftClickDown = False
         self.activeTool = None
         self.mousePosition = wx.Point()
         self.mouseDownPosition = wx.Point()
+        self.mouseStartPosition = wx.Point()
         self.previousMouseDownPosition = wx.Point()
+        self.drawingOverlay = wx.Overlay()
         self.wasToolDragged = False
 
+        self.createMap()
         self.bindEventHandlers()
 
+    def createMap(self):
+        """Create map"""
+
+        self.map = mapnik.Map(self.GetSize().GetWidth(), self.GetSize().GetHeight());
+        self.map.background = self.DEFAULT_MAP_BACKGROUND
+        self.addStyle('default', self.defaultPolygonStyle())
+        ds = data.ShapeFileDataSource(data.sourceTypes.SHAPE_FILE, 'demo-data/NIR.shp')
+        nigeria = ds.layer("Nigeria")
+        nigeria.styles.append('default')
+        self.addLayer(nigeria)
+        if (not self.isMapReady):
+            self.map.zoom_all()
+        self.isMapReady = True;
+        self.dispatchEvent(events.MapReadyEvent())
 
     def bindEventHandlers(self):
         """Bind events to handlers"""
@@ -43,46 +62,41 @@ class MapCanvas(wx.Panel):
         self.Bind(wx.EVT_LEFT_UP, self.onLeftUp)
         self.Bind(wx.EVT_MOTION, self.onMouseOver)
 
+    def dispatchEvent(self, event):
+        assert isinstance (event, wx.PyEvent)
+        wx.PostEvent(self, event)
+
     def activateTool(self, toolName):
         """Activate a tools by prepending 'is' and appending 'Tool'
         to the supplied flag name and setting the instance flag to false
         """
-        self.activeTool = toolNameName
+        toolbox.validateToolType(toolName)
+        self.deactivateTool(self.activeTool)
+        self.activeTool = toolName
         self.isToolActive = True
+        self.dispatchEvent(events.MapToolActivatedEvent(toolName))
 
-    def deactivateTool(self, flagName):
+    def deactivateTool(self, toolName):
         """Deactivates a tools by prepending 'is' and appending 'Tool'
         to the supplied flag name and setting the instance flag to false
         """
 
-        # if no tool is active see -> self.deactivateTool(self.activeTool)
-        if (flagName is None):
+        self.resetMousePositions()
+        toolbox.validateToolType(toolName)
+        if (toolName is None):
             return
-
-        # check if an instance attribute exists for the supplied flag
-        if (utils.checkAttr(flagName)):
-            self.isToolActive = False
-            # set the flag for the active tool to false
-            setattr(self, flagName, False)
-            self.activeTool = None
-
-    def createMap(self):
-        """Create map"""
-
-        self.map = mapnik.Map(self.GetSize().GetWidth(), self.GetSize().GetHeight());
-        self.map.background = self.DEFAULT_MAP_BACKGROUND
-        self.addStyle('My Style', self.defaultPolygonStyle())
-        ds = data.ShapeFileDataSource(data.sourceTypes.SHAPE_FILE,'demo-data/NIR.shp')
-        self.addLayer(ds.layer('Nigeria'))
-        if (not self.isMapReady):
-            self.map.zoom_all()
-        self.isMapReady = True;
+        toolbox.validateToolType(toolName)
+        self.isToolActive = False
+        self.activeTool = toolbox.types.NONE
+        self.dispatchEvent(events.MapToolDeactivatedEvent(toolName))
 
     def addLayer(self, layer):
         self.map.layers.append(layer)
+        self.dispatchEvent(events.MapLayersChangedEvent())
 
     def addStyle(self, styleName, style):
         self.map.append_style(styleName, style)
+        self.dispatchEvent(events.MapStylesChangedEvent())
 
     def defaultPolygonStyle(self):
         s = mapnik.Style()
@@ -99,30 +113,23 @@ class MapCanvas(wx.Panel):
 
     def createMapImage(self):
         """Draw map to Bitmap object"""
-        # create a Image32 object
         image = mapnik.Image(self.GetClientSize().GetWidth(), self.GetClientSize().GetHeight())
-        # render map to Image32 object
         mapnik.render(self.map, image)
-        # load raw data from Image32 to bitmap
-        self.bmp = wx.BitmapFromBufferRGBA(self.GetClientSize().GetWidth(),
-                                           self.GetClientSize().GetHeight(), image.tostring())
+        return wx.BitmapFromBufferRGBA(self.GetClientSize().GetWidth(),
+                                       self.GetClientSize().GetHeight(), image.tostring())
 
     def updateMap(self):
-        if (not self.isMapReady):
+        if not self.isMapReady:
             self.createMap()
-            self.isMapReady = True
         else:
             self.map.resize(self.GetSize().GetWidth(), self.GetSize().GetHeight())
 
-        self.createMapImage()
         dc = wx.PaintDC(self)
-        memoryDC = wx.MemoryDC(self.bmp)
+        memoryDC = wx.MemoryDC(self.createMapImage())
         # draw map to dc
-        dc.Blit(0, 0, self.GetClientSize().GetWidth(), self.GetClientSize().GetHeight(), memoryDC,
-                0, 0)
+        dc.Blit(0, 0, self.GetClientSize().GetWidth(), self.GetClientSize().GetHeight(), memoryDC, 0, 0)
 
-
-    def scale_bitmap(self, bitmap, width, height):
+    def scaleBitmap(self, bitmap, width, height):
         image = wx.ImageFromBitmap(bitmap)
         image = image.Scale(width, height, wx.IMAGE_QUALITY_HIGH)
         result = wx.BitmapFromImage(image)
@@ -135,63 +142,50 @@ class MapCanvas(wx.Panel):
         self.updateMap()
 
     def onLeftDown(self, event):
+        self.CaptureMouse()
+        self.mouseStartPosition = event.GetPosition()
         self.leftClickDown = True
         self.mousePosition = event.GetPosition()
 
     def onLeftUp(self, event):
+        if self.HasCapture():
+            self.ReleaseMouse()
         self.leftClickDown = False
         self.mousePosition = event.GetPosition()
 
         if (self.wasToolDragged):
-            pass
+            self.selectLeftUpTool()
         else:
-            self.selectTool()
+            self.selectLeftUpTool()
 
         self.resetMousePositions()
 
-    def resetMousePositions(self):
-        self.mousePosition = None
-        self.mouseDownPosition = None
-        self.previousMouseDownPosition = None
-        self.wasToolDragged = False
-
     def onMouseOver(self, event):
-        self.mouseDownPosition = event.GetPosition()
+        self.mousePosition= event.GetPosition()
         if (self.leftClickDown):
+            self.mouseDownPosition = event.GetPosition()
             self.wasToolDragged = True
-            self.selectTool()
+            self.selectLeftDragTool()
         transform = CoordinateTransform(self.GetSize(), self.map.envelope())
-        wx.PostEvent(self, MapMouseOverEvent(transform.getGeoCoord(self.mouseDownPosition)))
-
-    def onZoomInTool(self, event):
-        self.activateTool(maptools.FLAG_IS_ZOOM_IN_TOOL)
-
-    def onZoomOutTool(self, event):
-        self.activateTool(FLAG_IS_ZOOM_OUT_TOOL)
-
-    def onPanTool(self, event):
-        self.activateTool(toolbox.FLAG_IS_PAN_TOOL)
-
-    def onZoomEnvelopeTool(self, event):
-        self.activateTool(FLAG_IS_ZOOM_ENVELOPE_TOOL)
-
-    def onZoomExtentTool(self, event):
-        self.deactivateTool(self.activeTool)
-        self.toolbar.ToggleTool(id=event.GetEventObject().GetId(), toggle=False)
-        self.map.zoom_all()
-        self.updateMap()
+        wx.PostEvent(self, MapMouseOverEvent(transform.getGeoCoord(self.mousePosition)))
 
     def zoomIn(self):
-        tool = ZoomTool(self.map)
+        if self.wasToolDragged:
+            return
+        tool = toolbox.ZoomTool(self.map)
         transform = CoordinateTransform(self.GetSize(), self.map.envelope())
         tool.zoomToPoint(transform.getGeoCoord(self.mousePosition))
         self.updateMap()
+        self.dispatchEvent(events.MapScaleChangedEvent(Scale(self.map.scale(), self.map.scale_denominator())))
 
     def zoomOut(self):
+        if self.wasToolDragged:
+            return
         tool = toolbox.ZoomTool(self.map)
         transform = CoordinateTransform(self.GetSize(), self.map.envelope())
         tool.zoomFromPoint(transform.getGeoCoord(self.mousePosition))
         self.updateMap()
+        self.dispatchEvent(events.MapScaleChangedEvent(Scale(self.map.scale(), self.map.scale_denominator())))
 
     def pan(self):
         tool = toolbox.PanTool(self.map)
@@ -212,21 +206,87 @@ class MapCanvas(wx.Panel):
             tool.pan(self.mousePosition)
 
         self.updateMap()
+        self.dispatchEvent(events.MapScaleChangedEvent(Scale(self.map.scale(), self.map.scale_denominator())))
 
-    def selectTool(self):
-        # todo: Toggle tool availability if previously enabled/disabled and clicked (inline with the tools toggle button)
+    def zoomExtent(self):
+        self.setTool(toolbox.types.NONE)
+        self.map.zoom_all()
+        self.updateMap()
+        self.dispatchEvent(events.MapScaleChangedEvent(Scale(self.map.scale(), self.map.scale_denominator())))
+
+    def zoomEnvelope(self):
+        if not self.leftClickDown:
+            print("left up zoom env")
+            self.drawingOverlay.Reset()
+            transform = CoordinateTransform(self.GetSize(), self.map.envelope())
+            tool = toolbox.ZoomTool(self.map)
+            topLeft = transform.getGeoCoord(self.mouseStartPosition)
+            bottomRight = transform.getGeoCoord(self.Position)
+            minx = topLeft.x
+            maxx = bottomRight.x
+            miny = topLeft.y
+            maxy = bottomRight.y
+            box = mapnik.Box2d(minx,miny,maxx,maxy)
+            self.map.zoom_to_box(box)
+            self.updateMap()
+            return
+
+        rect = wx.RectPP(self.mouseStartPosition, self.mouseDownPosition)
+        # Draw the rubber-band rectangle using an overlay so it
+        # will manage keeping the rectangle and the former window
+        # contents separate.
+        dc = wx.ClientDC(self)
+        odc = wx.DCOverlay(self.drawingOverlay, dc)
+        odc.Clear()
+
+        pen = wx.Pen("red", 1)
+        brush = wx.Brush(wx.Colour(192, 192, 192, 128))
+        if "wxMac" in wx.PlatformInfo:
+            dc.SetPen(pen)
+            dc.SetBrush(brush)
+            dc.DrawRectangleRect(rect)
+        else:
+            # use a GC on Windows (and GTK?)
+            # this crashed on the Mac
+            ctx = wx.GraphicsContext_Create(dc)
+            ctx.SetPen(pen)
+            ctx.SetBrush(brush)
+            ctx.DrawRectangle(*rect)
+
+        del odc
+
+    def selectLeftDragTool(self):
         if (not self.isToolActive):
             return
         cases = {
-            toolbox.ZOOM_IN_TOOL: self.zoomIn,
-            toolbox.ZOOM_OUT_TOOL: self.zoomOut,
-            toolbox.PAN_TOOL: self.pan
+            toolbox.types.PAN_TOOL: self.pan,
+            toolbox.types.ZOOM_ENVELOPE_TOOL: self.zoomEnvelope
+        }
+        func = cases.get(self.activeTool, lambda: "")
+        func()
+
+    def selectLeftUpTool(self):
+        print("finding leftup")
+        if (not self.isToolActive):
+            return
+        cases = {
+            toolbox.types.ZOOM_IN_TOOL: self.zoomIn,
+            toolbox.types.ZOOM_OUT_TOOL: self.zoomOut,
+            toolbox.types.ZOOM_ENVELOPE_TOOL: self.zoomEnvelope
         }
         func = cases.get(self.activeTool, lambda: "")
         func()
 
     def setTool(self, tool):
-        self.activateTool()
+        self.activateTool(tool)
 
+    @property
+    def mapScale(self):
+        return Scale(self.map.scale(), self.map.scale_denominator())
 
-
+    def resetMousePositions(self):
+        self.mouseStartPosition = None
+        self.mousePosition = None
+        self.mouseDownPosition = None
+        self.previousMouseDownPosition = None
+        self.wasToolDragged = False

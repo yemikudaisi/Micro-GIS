@@ -1,11 +1,13 @@
 import wx
 import wx.lib.newevent
 import gui.maptools as toolbox
-from events import MapToolActivatedEvent
 
+MapToolActivatedEventType, EVT_MAP_TOOL_ACTIVATED= wx.lib.newevent.NewCommandEvent()
+MapToolActivatedEventType = wx.NewEventType()
+EVT_MAP_TOOL_ACTIVATED = wx.PyEventBinder(MapToolActivatedEventType, 0)
 
 class MapToolActivatedEvent(wx.PyEvent):
-    eventType = MapToolActivatedEvent
+    eventType = MapToolActivatedEventType
 
     def __init__(self, toolType):
         toolbox.validateToolType(toolType)
@@ -13,5 +15,5 @@ class MapToolActivatedEvent(wx.PyEvent):
         self.__toolType = toolType
 
     @property
-    def type(self):
-        return self.__toolTypepoint
+    def toolType(self):
+        return self.__toolType

@@ -5,7 +5,7 @@ class Scale(object):
 
     @property
     def representativeFraction(self):
-        numerator = self.scale/self.scale
-        denominator = self.denominator/self.scale
-        return "{numerator},{denominator}".format(**locals())
+        numerator = int(round(self.scale/self.scale))
+        denominator = round(self.denominator/self.scale,2)
+        return "{numerator}:{denominator}".format(**locals())
 

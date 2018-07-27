@@ -1,14 +1,9 @@
 import wx
+from mapmouseover import MapMouseOverEvent, EVT_MAP_MOUSE_OVER
+from mapscalechanged import MapScaleChangedEvent, EVT_MAP_SCALE_CHANGED
+from maptoolactivated import MapToolActivatedEvent, EVT_MAP_TOOL_ACTIVATED
+from maptooldeactivated import MapToolDeactivatedEvent, EVT_MAP_TOOL_DEACTIVATED
+from maplayerschanged import MapLayersChangedEvent, EVT_MAP_LAYERS_CHANGED
+from mapstyleschanged import MapStylesChangedEvent, EVT_MAP_STYLE_CHANGED
+from mapready import MapReadyEvent, EVT_MAP_READY
 
-MapMouseOverEvent, EVT_MAP_MOUSE_OVER = wx.lib.newevent.NewCommandEvent()
-MapToolActivatedEvent, EVT_MAP_TOOL_ACTIVATED= wx.lib.newevent.NewCommandEvent()
-MapToolDeactivatedEvent, EVT_MAP_TOOL_DEACTIVATED= wx.lib.newevent.NewCommandEvent()
-
-MapMouseOverEvent = wx.NewEventType()
-EVT_MAP_MOUSE_OVER = wx.PyEventBinder(MapMouseOverEvent, 0)
-
-MapToolActivatedEvent = wx.NewEventType()
-EVT_MAP_TOOL_ACTIVATED = wx.PyEventBinder(MapToolActivatedEvent, 0)
-
-MapToolDeactivatedEvent = wx.NewEventType()
-EVT_MAP_TOOL_DEACTIVATED = wx.PyEventBinder(MapToolDeactivatedEvent, 0)

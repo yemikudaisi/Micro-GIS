@@ -1,16 +1,17 @@
 import wx
 import wx.lib.agw.aui as aui
-from events import EVT_MAP_MOUSE_OVER
+import events
 from gui.mappanel import MapPanel
 from gui.settingspanel import SettingsPanel
 
 
 class MainFrame(wx.Frame):
     __MSG_STATUS_FIELD = 0
-    __COORD_STATUS_FIELD = 1
-    __SCALE_LABEL_STATUS_FIELD = 2
-    __SCALE_VALUE_STATUS_FIELD = 3
-    __PROJ_STATUS_FIELD = 4
+    __COORD_LABEL_STATUS_FIELD = 1
+    __COORD_VALUE_STATUS_FIELD = 2
+    __SCALE_LABEL_STATUS_FIELD = 3
+    __SCALE_VALUE_STATUS_FIELD = 4
+    __PROJ_STATUS_FIELD = 5
 
     def __init__(self, parent, id=-1, title="Simple GIS", pos=wx.DefaultPosition,
                  size=(800, 600), style=wx.DEFAULT_FRAME_STYLE):
@@ -41,18 +42,20 @@ class MainFrame(wx.Frame):
                             wx.DefaultPosition, wx.Size(200,150),
                             wx.NO_BORDER | wx.TE_MULTILINE)
 
-        mapPanel = MapPanel(self)
+        self.mapPanel = MapPanel(self)
 
         # add the panes to the manager
         #self._mgr.AddPane(treePanel, aui.AuiPaneInfo().Left().Caption("Layers"))
         self._mgr.AddPane(text2, aui.AuiPaneInfo().Left().Caption("Map Layers"))
-        self._mgr.AddPane(mapPanel, aui.AuiPaneInfo().CenterPane())
+        self._mgr.AddPane(self.mapPanel, aui.AuiPaneInfo().CenterPane())
         self.initComponents()
         # tell the manager to "commit" all the changes just made
         self._mgr.Update()
         self.SetMenuBar(self.buildMenu())
 
-        mapPanel.Bind(EVT_MAP_MOUSE_OVER, self.OnMapClick)
+        self.mapPanel.canvas.Bind(events.EVT_MAP_MOUSE_OVER, self.onMapClick)
+        self.mapPanel.canvas.Bind(events.EVT_MAP_SCALE_CHANGED, self.onScaleChanged)
+        self.mapPanel.canvas.Bind(events.EVT_MAP_READY, self.onMapReady)
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
         self.settings = [False, False, False]
@@ -76,10 +79,12 @@ class MainFrame(wx.Frame):
         self.initStatusBar()
 
     def initStatusBar(self):
-        self.CreateStatusBar(5)
-        self.GetStatusBar().SetStatusWidths([-1, 150,100,100,200])
+        self.CreateStatusBar(6)
+        self.GetStatusBar().SetStatusWidths([-1, 80,100,40,120,100])
         self.GetStatusBar().SetStatusText("Ready")
+        self.GetStatusBar().SetStatusText("Coordinates: ", self.__COORD_LABEL_STATUS_FIELD)
         self.GetStatusBar().SetStatusText("Scale: ", self.__SCALE_LABEL_STATUS_FIELD)
+        self.GetStatusBar().SetStatusText("WGS84", self.__PROJ_STATUS_FIELD)
 
     def buildMenu(self):
         mb = wx.MenuBar()
@@ -104,11 +109,18 @@ class MainFrame(wx.Frame):
         # deinitialize the frame manager
         self._mgr.UnInit()
         event.Skip()
-    
-    def OnMapClick(self, event):
+
+    def onMapReady(self, event):
+        self.GetStatusBar().SetStatusText(self.mapPanel.canvas.mapScale.representativeFraction, self.__SCALE_VALUE_STATUS_FIELD)
+
+    def onMapClick(self, event):
         # note: y represents latitude why x represent longitude
         lat = ("%.3f" % round(event.mapPosition.y, 3))
         long = ("%.3f" % round(event.mapPosition.x, 3))
-        coord = "Coords: {lat},{long}".format(**locals())
-        self.GetStatusBar().SetStatusText(coord, self.__COORD_STATUS_FIELD)
+        coord = "{lat},{long}".format(**locals())
+        self.GetStatusBar().SetStatusText(coord, self.__COORD_VALUE_STATUS_FIELD)
+
+    def onScaleChanged(self, event):
+        self.GetStatusBar().SetStatusText(event.scale.representativeFraction, self.__SCALE_VALUE_STATUS_FIELD)
+
 
