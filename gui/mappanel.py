@@ -7,18 +7,14 @@ yemikudaisi.github.io
 """
 
 import wx
-import mapnik
-
-from geometry import Scale
-from geometry.point import Point
-from events.mapmouseover import MapMouseOverEvent
 from gui.mapcanvas import MapCanvas
 import gui.maptools as toolbox
 import events
-from resources.resourceprovider import ResourceProvider as rp
-import utils
+from resources.provider import Provider as rp
+
 
 class MapPanel(wx.Panel):
+
     def __init__(self, parent):
         wx.Panel.__init__(self, parent = parent, size=wx.Size(800,500))
         self.shapefile ="NIR.shp"
@@ -43,13 +39,14 @@ class MapPanel(wx.Panel):
         to the supplied flag name and setting the instance flag to false
         """
 
-        #if no tool is active see -> self.deactivateTool(self.activeTool)
         if(event.toolType is None):
             return      
 
-        #toggle off the button for the active tool
-        tool = getattr(self, "tb"+event.toolType)
-        self.toolbar.ToggleTool(id=tool.GetId(),toggle=False)
+        self.toggleOffActiveToolButton(event.toolType)
+
+    def toggleOffActiveToolButton(self, toolType):
+        tool = getattr(self, "tb" + toolType)
+        self.toolbar.ToggleTool(id=tool.GetId(), toggle=False)
 
     def buildToolbar( self ) :
     
@@ -57,42 +54,36 @@ class MapPanel(wx.Panel):
         
         zoomInID = wx.NewId()
         self.tbZoomInTool = toolbar.AddCheckTool( zoomInID, 
-                                     bitmap=rp.GetIcon("zoom-in"))
+                                     bitmap=rp.GetIcon("zoom-in", wx.Size(16,16)))
         self.Bind(wx.EVT_TOOL, self.onZoomInTool, self.tbZoomInTool )
         
         zoomOutID = wx.NewId()
         self.tbZoomOutTool = toolbar.AddCheckTool( zoomOutID, 
-                                     bitmap=rp.GetIcon("zoom-out"))
+                                     bitmap=rp.GetIcon("zoom-out", wx.Size(16,16)))
         self.Bind(wx.EVT_TOOL, self.onZoomOutTool, self.tbZoomOutTool)
             
         toolbar.AddSeparator()
 
         panID = wx.NewId()
         self.tbPanTool = toolbar.AddCheckTool( panID, 
-                                     bitmap=rp.GetIcon("pan"))
+                                     bitmap=rp.GetIcon("pan", wx.Size(16,16)))
         self.Bind(wx.EVT_TOOL, self.onPanTool, self.tbPanTool)
 
         toolbar.AddSeparator()
 
         zoomEnvelopeID = wx.NewId()
         self.tbZoomEnvelopeTool = toolbar.AddCheckTool( zoomEnvelopeID, 
-                                     bitmap=rp.GetIcon("zoom-selection"))
+                                     bitmap=rp.GetIcon("zoom-selection", wx.Size(16,16)))
         self.Bind(wx.EVT_TOOL, self.onZoomEnvelopeTool, self.tbZoomEnvelopeTool)
 
         zoomExtentID = wx.NewId()
         self.tbZoomExtentTool = toolbar.AddSimpleTool( zoomExtentID,
-                                     bitmap=rp.GetIcon("zoom-region"))
+                                     bitmap=rp.GetIcon("zoom-region", wx.Size(16,16)))
         self.Bind(wx.EVT_TOOL, self.onZoomExtentTool, self.tbZoomExtentTool)
         
         toolbar.Realize()
         
         return toolbar
-
-    def scale_bitmap(self,bitmap, width, height):
-        image = wx.ImageFromBitmap(bitmap)
-        image = image.Scale(width, height, wx.IMAGE_QUALITY_HIGH)
-        result = wx.BitmapFromImage(image)
-        return result
 
     def onZoomInTool(self,event):
         if self.canvas.activeTool == toolbox.types.ZOOM_IN_TOOL:

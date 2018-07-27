@@ -3,6 +3,11 @@ import wx.lib.agw.aui as aui
 import events
 from gui.mappanel import MapPanel
 from gui.settingspanel import SettingsPanel
+try:
+    from agw import customtreectrl as ct
+except ImportError: # if it's not there locally, try the wxPython lib.
+    import wx.lib.agw.customtreectrl as ct
+
 
 
 class MainFrame(wx.Frame):
@@ -19,46 +24,31 @@ class MainFrame(wx.Frame):
         wx.Frame.__init__(self, parent, id, title, pos, size, style)
 
         self._mgr = aui.AuiManager()
-
         self._mgr.SetManagedWindow(self)
-
-        # create several text controls
-        treePanel = wx.Panel(self)
-        self.treeLayers = wx.TreeCtrl(self, -1, style=wx.TR_HAS_BUTTONS|wx.TR_DEFAULT_STYLE|wx.SUNKEN_BORDER)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.treeLayers, 1, wx.EXPAND, 0)
-        treePanel.SetAutoLayout(True)
-        treePanel.SetSizer(sizer)
-        sizer.Fit(treePanel)
-        sizer.SetSizeHints(treePanel)
-        treePanel.Layout()
-
-        #self.root = self.treeLayers.AddRoot('Something goes here')
-        #self.treeLayers.SetPyData(self.root, ('key', 'value'))
-        #os = self.treeLayers.AppendItem(self.root, 'Operating Systems')
-        #self.treeLayers.Expand(self.root)
-
-        text2 = wx.TextCtrl(self, -1, "Pane 2 - sample text",
-                            wx.DefaultPosition, wx.Size(200,150),
-                            wx.NO_BORDER | wx.TE_MULTILINE)
-
         self.mapPanel = MapPanel(self)
+        self.initLayerTree()
 
         # add the panes to the manager
-        #self._mgr.AddPane(treePanel, aui.AuiPaneInfo().Left().Caption("Layers"))
-        self._mgr.AddPane(text2, aui.AuiPaneInfo().Left().Caption("Map Layers"))
+        self._mgr.AddPane(self.treeLayers, aui.AuiPaneInfo().Left().Caption("Layers"))
         self._mgr.AddPane(self.mapPanel, aui.AuiPaneInfo().CenterPane())
         self.initComponents()
         # tell the manager to "commit" all the changes just made
         self._mgr.Update()
-        self.SetMenuBar(self.buildMenu())
 
+        self.SetMenuBar(self.buildMenu())
         self.mapPanel.canvas.Bind(events.EVT_MAP_MOUSE_OVER, self.onMapClick)
-        self.mapPanel.canvas.Bind(events.EVT_MAP_SCALE_CHANGED, self.onScaleChanged)
+        self.mapPanel.canvas.Bind(events.EVT_MAP_SCALE_CHANGED, self.onMapScaleChanged)
         self.mapPanel.canvas.Bind(events.EVT_MAP_READY, self.onMapReady)
+        self.mapPanel.canvas.Bind(events.EVT_MAP_LAYERS_CHANGED, self.onMapLayersChanged)
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
         self.settings = [False, False, False]
+
+    def initLayerTree(self):
+        self.treeLayers = ct.CustomTreeCtrl(self, -1, size=wx.Size(200,150), style=wx.TR_HAS_BUTTONS|wx.TR_DEFAULT_STYLE|wx.SUNKEN_BORDER)
+        self.layersTreeRoot = self.treeLayers.AddRoot('Layers')
+        self.treeLayers.SetPyData(self.layersTreeRoot, ('key', 'value'))
+        self.treeLayers.Expand(self.layersTreeRoot)
 
     def onSettings(self, e):
         settings_dialog = SettingsPanel(self.settings, self)
@@ -69,10 +59,11 @@ class MainFrame(wx.Frame):
     
     def initComponents(self):
         tbMain = aui.AuiToolBar(self, -1, wx.DefaultPosition, wx.DefaultSize,agwStyle=aui.AUI_TB_DEFAULT_STYLE | aui.AUI_TB_OVERFLOW)
-        tbMain.AddSimpleTool(31,"hello tool",wx.ArtProvider.GetBitmap(wx.ART_FILE_OPEN))
-        tbMain.AddSimpleTool(31,"hello tool",wx.ArtProvider.GetBitmap(wx.ART_FILE_SAVE))
-        tbMain.AddSimpleTool(31,"hello tool",wx.ArtProvider.GetBitmap(wx.ART_NEW))
-        tbMain.AddSimpleTool(31,"hello tool",wx.ArtProvider.GetBitmap(wx.ART_QUESTION))
+        tbMain.SetToolBitmapSize(wx.Size(16, 16))
+        tbMain.AddSimpleTool(wx.NewId(),"hello tool",wx.ArtProvider.GetBitmap(wx.ART_FILE_OPEN, size=wx.Size(16, 16)))
+        tbMain.AddSimpleTool(wx.NewId(),"hello tool",wx.ArtProvider.GetBitmap(wx.ART_FILE_SAVE, size=wx.Size(16, 16)))
+        tbMain.AddSimpleTool(wx.NewId(),"hello tool",wx.ArtProvider.GetBitmap(wx.ART_NEW, size=wx.Size(16, 16)))
+        tbMain.AddSimpleTool(wx.NewId(),"hello tool",wx.ArtProvider.GetBitmap(wx.ART_QUESTION, size=wx.Size(16, 16)))
         tbMain.Realize()
 
         self._mgr.AddPane(tbMain, aui.AuiPaneInfo().Caption("Sample Vertical Toolbar").ToolbarPane().Top())
@@ -120,7 +111,16 @@ class MainFrame(wx.Frame):
         coord = "{lat},{long}".format(**locals())
         self.GetStatusBar().SetStatusText(coord, self.__COORD_VALUE_STATUS_FIELD)
 
-    def onScaleChanged(self, event):
+    def onMapScaleChanged(self, event):
         self.GetStatusBar().SetStatusText(event.scale.representativeFraction, self.__SCALE_VALUE_STATUS_FIELD)
+
+    def onMapLayersChanged(self, e):
+        self.updateLayerTree()
+
+    def updateLayerTree(self):
+        layers = self.mapPanel.canvas.mapLayers
+        for l in layers:
+            os = self.treeLayers.AppendItem(self.layersTreeRoot, l.name)
+            self.treeLayers.Expand(self.layersTreeRoot)
 
 

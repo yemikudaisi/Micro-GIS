@@ -63,6 +63,7 @@ class MapCanvas(wx.Panel):
         self.Bind(wx.EVT_MOTION, self.onMouseOver)
 
     def dispatchEvent(self, event):
+        """Dispatch an event through wxPython"""
         assert isinstance (event, wx.PyEvent)
         wx.PostEvent(self, event)
 
@@ -91,14 +92,19 @@ class MapCanvas(wx.Panel):
         self.dispatchEvent(events.MapToolDeactivatedEvent(toolName))
 
     def addLayer(self, layer):
+        """Adds a append layer to the map layer collection"""
+        assert isinstance(layer, mapnik.Layer)
         self.map.layers.append(layer)
         self.dispatchEvent(events.MapLayersChangedEvent())
 
     def addStyle(self, styleName, style):
+        """Appends a style to the map style collection"""
+        assert isinstance(style, mapnik.Style)
         self.map.append_style(styleName, style)
         self.dispatchEvent(events.MapStylesChangedEvent())
 
     def defaultPolygonStyle(self):
+        """Returns a default style for polyshape features"""
         s = mapnik.Style()
         r = mapnik.Rule()
         polygon_symbolizer = mapnik.PolygonSymbolizer()
@@ -112,13 +118,14 @@ class MapCanvas(wx.Panel):
         return s
 
     def createMapImage(self):
-        """Draw map to Bitmap object"""
+        """Creates a wx bitmap image from mapnik rendered map"""
         image = mapnik.Image(self.GetClientSize().GetWidth(), self.GetClientSize().GetHeight())
         mapnik.render(self.map, image)
         return wx.BitmapFromBufferRGBA(self.GetClientSize().GetWidth(),
                                        self.GetClientSize().GetHeight(), image.tostring())
 
-    def updateMap(self):
+    def paintMap(self):
+        """Paints the map on the canvas"""
         if not self.isMapReady:
             self.createMap()
         else:
@@ -139,7 +146,7 @@ class MapCanvas(wx.Panel):
         """
         Redraw the map everytime the panel is repainted
         """
-        self.updateMap()
+        self.paintMap()
 
     def onLeftDown(self, event):
         self.CaptureMouse()
@@ -175,7 +182,7 @@ class MapCanvas(wx.Panel):
         tool = toolbox.ZoomTool(self.map)
         transform = CoordinateTransform(self.GetSize(), self.map.envelope())
         tool.zoomToPoint(transform.getGeoCoord(self.mousePosition))
-        self.updateMap()
+        self.paintMap()
         self.dispatchEvent(events.MapScaleChangedEvent(Scale(self.map.scale(), self.map.scale_denominator())))
 
     def zoomOut(self):
@@ -184,7 +191,7 @@ class MapCanvas(wx.Panel):
         tool = toolbox.ZoomTool(self.map)
         transform = CoordinateTransform(self.GetSize(), self.map.envelope())
         tool.zoomFromPoint(transform.getGeoCoord(self.mousePosition))
-        self.updateMap()
+        self.paintMap()
         self.dispatchEvent(events.MapScaleChangedEvent(Scale(self.map.scale(), self.map.scale_denominator())))
 
     def pan(self):
@@ -205,30 +212,29 @@ class MapCanvas(wx.Panel):
         else:
             tool.pan(self.mousePosition)
 
-        self.updateMap()
+        self.paintMap()
         self.dispatchEvent(events.MapScaleChangedEvent(Scale(self.map.scale(), self.map.scale_denominator())))
 
     def zoomExtent(self):
         self.setTool(toolbox.types.NONE)
         self.map.zoom_all()
-        self.updateMap()
+        self.paintMap()
         self.dispatchEvent(events.MapScaleChangedEvent(Scale(self.map.scale(), self.map.scale_denominator())))
 
     def zoomEnvelope(self):
         if not self.leftClickDown:
-            print("left up zoom env")
             self.drawingOverlay.Reset()
             transform = CoordinateTransform(self.GetSize(), self.map.envelope())
             tool = toolbox.ZoomTool(self.map)
             topLeft = transform.getGeoCoord(self.mouseStartPosition)
-            bottomRight = transform.getGeoCoord(self.Position)
+            bottomRight = transform.getGeoCoord(self.mousePosition)
             minx = topLeft.x
             maxx = bottomRight.x
             miny = topLeft.y
             maxy = bottomRight.y
             box = mapnik.Box2d(minx,miny,maxx,maxy)
             self.map.zoom_to_box(box)
-            self.updateMap()
+            self.paintMap()
             return
 
         rect = wx.RectPP(self.mouseStartPosition, self.mouseDownPosition)
@@ -266,7 +272,6 @@ class MapCanvas(wx.Panel):
         func()
 
     def selectLeftUpTool(self):
-        print("finding leftup")
         if (not self.isToolActive):
             return
         cases = {
@@ -283,6 +288,10 @@ class MapCanvas(wx.Panel):
     @property
     def mapScale(self):
         return Scale(self.map.scale(), self.map.scale_denominator())
+
+    @property
+    def mapLayers(self):
+        return self.map.layers
 
     def resetMousePositions(self):
         self.mouseStartPosition = None
