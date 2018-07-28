@@ -47,11 +47,11 @@ class MapCanvas(wx.Panel):
 
         self.map = mapnik.Map(self.GetSize().GetWidth(), self.GetSize().GetHeight());
         self.map.background = DEFAULT_MAP_BACKGROUND
-        self.addStyle('default', self.defaultPolygonStyle())
+        """self.addStyle('default', self.defaultPolygonStyle())
         ds = data.ShapeFileDataSource(data.sourceTypes.SHAPE_FILE, 'demo-data/NIR.shp')
         nigeria = ds.layer("Nigeria")
         nigeria.styles.append('default')
-        self.addLayer(nigeria)
+        self.addLayer(nigeria)"""
         if (not self.isMapReady):
             self.map.zoom_all()
         self.isMapReady = True;
@@ -138,11 +138,6 @@ class MapCanvas(wx.Panel):
         # draw map to dc
         dc.Blit(0, 0, self.GetClientSize().GetWidth(), self.GetClientSize().GetHeight(), memoryDC, 0, 0)
 
-    def scaleBitmap(self, bitmap, width, height):
-        image = wx.ImageFromBitmap(bitmap)
-        image = image.Scale(width, height, wx.IMAGE_QUALITY_HIGH)
-        result = wx.BitmapFromImage(image)
-        return result
 
     def onPaint(self, event):
         """
@@ -301,3 +296,10 @@ class MapCanvas(wx.Panel):
         self.mouseDownPosition = None
         self.previousMouseDownPosition = None
         self.wasToolDragged = False
+
+    def openMap(self, mapString):
+        """Open a map from xml string"""
+        assert isinstance(mapString, str)
+        mapnik.load_map_from_string(self.map, mapString)
+        self.map.zoom_all()
+        self.paintMap()

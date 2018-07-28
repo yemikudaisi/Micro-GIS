@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Map srs="+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs" background-color="rgb(60,63,65)">
+  <Style name="default">
+    <Rule>
+      <PolygonSymbolizer fill="rgb(60,63,65)"/>
+      <LineSymbolizer stroke="rgb(135,147,154)" stroke-width="0.5"/>
+    </Rule>
+  </Style>
+  <Layer name="Nigeria" srs="+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs">
+    <StyleName>default</StyleName>
+    <Datasource>
+      <Parameter name="file">NIR.shp</Parameter>
+      <Parameter name="type">shape</Parameter>
+    </Datasource>
+  </Layer>
+</Map>
