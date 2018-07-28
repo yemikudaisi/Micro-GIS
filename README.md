@@ -7,11 +7,15 @@ A lightweight GIS application based on Mapnik and WxPython. I started this proje
  - Zoom in and zoom out functionalities.
  - Map panning
  - Pan to envelope and pan to map extent
- - Layer tree
- - Dynamic data source allocation
+ - View map layers
+ - Save and open maps
 
   ## Todos
- - Map tools menus
+ - View map styles
+ - Add/Edit layers
+ - Add/Edit styles
+ - Export map to other formats
+ - tools menus
  - Map printing support
  - more todos
  
