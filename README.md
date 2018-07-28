@@ -15,6 +15,15 @@ A lightweight GIS application based on Mapnik and WxPython. I started this proje
  - Map printing support
  - more todos
  
+ ## Installation
+ 
+To install the script clone the repository and run the script
+```
+> git clone https://github.com/yemikudaisi/GIS-Lite.git
+> cd GIS-Lite
+> python app.py
+```
+
 ## Dependencies:
 
 * [Mapnik](https://mapnik.org/)
