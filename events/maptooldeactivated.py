@@ -1,7 +1,7 @@
 import wx
 import wx.lib.newevent
 
-from gui.maptools import validateToolType
+from mapping.maptools import validateToolType
 
 MapToolDeactivatedEventType, EVT_MAP_TOOL_DEACTIVATED= wx.lib.newevent.NewCommandEvent()
 
