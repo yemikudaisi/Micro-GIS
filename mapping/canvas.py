@@ -10,7 +10,8 @@ import wx
 import mapnik
 
 import events
-import gui.maptools as toolbox
+import mapping
+import mapping.tools as toolbox
 import data
 from geometry import Scale
 
@@ -18,14 +19,11 @@ from geometry.point import Point
 from events.mapmouseover import MapMouseOverEvent
 from rendering.coordinatetransform import CoordinateTransform
 
-DEFAULT_MAP_BACKGROUND = mapnik.Color('#3c3F41')
-DEFAULT_FILL_COLOR = mapnik.Color('#3c3F41')
-DEFAULT_LINE_COLOR = mapnik.Color('#87939A')
 
-class MapCanvas(wx.Panel):
+class MapCanvas(wx.Window):
 
     def __init__(self, parent):
-        wx.Panel.__init__(self, parent=parent, size=wx.Size(800, 500))
+        wx.Window.__init__(self, parent=parent, size=wx.Size(800, 500))
 
         self.shapefile = "NIR.shp"
         self.isMapReady = False
@@ -46,12 +44,21 @@ class MapCanvas(wx.Panel):
         """Create map"""
 
         self.map = mapnik.Map(self.GetSize().GetWidth(), self.GetSize().GetHeight());
-        self.map.background = DEFAULT_MAP_BACKGROUND
-        """self.addStyle('default', self.defaultPolygonStyle())
-        ds = data.ShapeFileDataSource(data.sourceTypes.SHAPE_FILE, 'demo-data/NIR.shp')
-        nigeria = ds.layer("Nigeria")
-        nigeria.styles.append('default')
-        self.addLayer(nigeria)"""
+        self.map.background = mapping.DEFAULT_MAP_BACKGROUND
+        self.addStyle(mapping.DEFAULT_MAP_STYLE, mapping.defaultPolygonStyle())# demo-data/NIR.shp
+
+        worldShapeDS = data.ShapeFileDataSource(data.sourceTypes.SHAPE_FILE, 'demo-data/ne_110m_land/ne_110m_land.shp')
+        ngShapeDS = data.ShapeFileDataSource(data.sourceTypes.SHAPE_FILE, 'demo-data/NIR.shp')
+
+        ngLayer = ngShapeDS.layer("Nigeria")
+        worldLayer = worldShapeDS.layer("World")
+
+        ngLayer.styles.append(mapping.DEFAULT_MAP_STYLE)
+        worldLayer.styles.append(mapping.DEFAULT_MAP_STYLE)
+
+        self.addMapLayer(worldLayer)
+        #self.addMapLayer(ngLayer)
+
         if (not self.isMapReady):
             self.map.zoom_all()
         self.isMapReady = True;
@@ -62,7 +69,7 @@ class MapCanvas(wx.Panel):
         self.Bind(wx.EVT_PAINT, self.onPaint)
         self.Bind(wx.EVT_LEFT_DOWN, self.onLeftDown)
         self.Bind(wx.EVT_LEFT_UP, self.onLeftUp)
-        self.Bind(wx.EVT_MOTION, self.onMouseOver)
+        self.Bind(wx.EVT_MOTION, self.onMouseMotion)
 
     def dispatchEvent(self, event):
         """Dispatch an event through wxPython"""
@@ -93,31 +100,39 @@ class MapCanvas(wx.Panel):
         self.activeTool = toolbox.types.NONE
         self.dispatchEvent(events.MapToolDeactivatedEvent(toolName))
 
-    def addLayer(self, layer):
-        """Adds a append layer to the map layer collection"""
+    def addMapLayer(self, layer):
+        """Append layer to the map layer list"""
         assert isinstance(layer, mapnik.Layer)
         self.map.layers.append(layer)
         self.dispatchEvent(events.MapLayersChangedEvent())
 
+        if self.isMapReady:
+            self.paintMap()
+
+    def removeMapLayer(self, layer):
+        """Removes layer from the map layer collection"""
+        assert isinstance(layer, mapnik.Layer)
+        index = -1
+        for idx, l in enumerate(self.map.layers):
+            if l.name == layer.name:
+                index = idx
+                break
+
+        print "layer id"+str(index)
+        self.map.layers.erase(idx)
+        self.dispatchEvent(events.MapLayersChangedEvent())
+
+        if self.isMapReady:
+            self.paintMap()
+
     def addStyle(self, styleName, style):
-        """Appends a style to the map style collection"""
+        """
+        Appends a style to the map style collection
+        Added to the canvas to have control over StyleChangedEvent
+        """
         assert isinstance(style, mapnik.Style)
         self.map.append_style(styleName, style)
         self.dispatchEvent(events.MapStylesChangedEvent())
-
-    def defaultPolygonStyle(self):
-        """Returns a default style for polyshape features"""
-        s = mapnik.Style()
-        r = mapnik.Rule()
-        polygon_symbolizer = mapnik.PolygonSymbolizer()
-        polygon_symbolizer.fill = DEFAULT_FILL_COLOR
-        r.symbols.append(polygon_symbolizer)
-        line_symbolizer = mapnik.LineSymbolizer()
-        line_symbolizer.stroke = DEFAULT_LINE_COLOR
-        line_symbolizer.stroke_width = 0.5
-        r.symbols.append(line_symbolizer)
-        s.rules.append(r)
-        return s
 
     def createMapImage(self):
         """Creates a wx bitmap image from mapnik rendered map"""
@@ -164,9 +179,9 @@ class MapCanvas(wx.Panel):
 
         self.resetMousePositions()
 
-    def onMouseOver(self, event):
+    def onMouseMotion(self, event):
         self.mousePosition= event.GetPosition()
-        if (self.leftClickDown):
+        if (event.Dragging() and event.LeftIsDown()):
             self.mouseDownPosition = event.GetPosition()
             self.wasToolDragged = True
             self.selectLeftDragTool()

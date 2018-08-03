@@ -2,14 +2,14 @@ import wx
 import wx.lib.newevent
 
 
-MapMouseOverEventType, EVT_MAP_MOUSE_OVER = wx.lib.newevent.NewCommandEvent()
+MapMouseDragEventType, EVT_MAP_MOUSE_DRAG = wx.lib.newevent.NewCommandEvent()
 
-MapMouseOverEventType = wx.NewEventType()
-EVT_MAP_MOUSE_OVER = wx.PyEventBinder(MapMouseOverEventType, 0)
+MapMouseDragEventType = wx.NewEventType()
+EVT_MAP_MOUSE_DRAG = wx.PyEventBinder(MapMouseDragEventType, 0)
 
 
 class MapMouseOverEvent(wx.PyEvent):
-    eventType = MapMouseOverEventType
+    eventType = MapMouseDragEventType
 
     def __init__(self, point):
         wx.PyEvent.__init__(self, eventType=self.eventType) 

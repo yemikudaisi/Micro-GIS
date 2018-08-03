@@ -1,6 +1,6 @@
 import wx
 import wx.lib.newevent
-import mapping.maptools as toolbox
+import mapping.tools as toolbox
 
 MapToolActivatedEventType, EVT_MAP_TOOL_ACTIVATED= wx.lib.newevent.NewCommandEvent()
 MapToolActivatedEventType = wx.NewEventType()

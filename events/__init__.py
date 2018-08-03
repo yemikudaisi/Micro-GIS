@@ -1,5 +1,5 @@
 import wx
-from mapmouseover import MapMouseOverEvent, EVT_MAP_MOUSE_OVER
+from mapmouseover import MapMouseOverEvent, EVT_MAP_MOUSE_DRAG
 from mapscalechanged import MapScaleChangedEvent, EVT_MAP_SCALE_CHANGED
 from maptoolactivated import MapToolActivatedEvent, EVT_MAP_TOOL_ACTIVATED
 from maptooldeactivated import MapToolDeactivatedEvent, EVT_MAP_TOOL_DEACTIVATED

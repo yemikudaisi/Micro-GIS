@@ -1,3 +1,4 @@
+import ntpath
 import sys
 import wx
 
@@ -113,3 +114,52 @@ def info(fname, expected, actual, flag):
           + ("accepts", "returns")[flag] + " ({}), but ".format(expected)\
           + ("was given", "result is")[flag] + " ({})".format(actual)
     return msg
+
+class Log:
+    def WriteText(self, text):
+        if text[-1:] == '\n':
+            text = text[:-1]
+        wx.LogMessage(text)
+    write = WriteText
+
+class Gui:
+
+    @staticmethod
+    def openFileDialogPath(parent,title, wildcard):
+
+        with wx.FileDialog(parent, title, wildcard=wildcard,
+                           style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
+
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return ""
+            return fileDialog.GetPath()
+
+    @staticmethod
+    def showMessageBoxYesNo(parent, question, caption='Yes or no?'):
+        dlg = wx.MessageDialog(parent, question, caption, wx.YES_NO | wx.ICON_QUESTION)
+        result = dlg.ShowModal() == wx.ID_YES
+        dlg.Destroy()
+        return result
+
+    @staticmethod
+    def showMessageBoxInfo(parent, message, caption='Insert program title'):
+        dlg = wx.MessageDialog(parent, message, caption, wx.OK | wx.ICON_INFORMATION)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    @staticmethod
+    def showScrollMessageInfoText(parent, message, caption='Information !'):
+        dlg = wx.ScrolledMessageDialog(parent, message, caption)
+        dlg.ShowModal()
+
+    @staticmethod
+    def showMessageBoxWarn(parent, message, caption='Warning!'):
+        dlg = wx.MessageDialog(parent, message, caption, wx.OK | wx.ICON_WARNING)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+class File:
+    @staticmethod
+    def getPathFileName(path):
+        head, tail = ntpath.split(path)
+        return tail or ntpath.basename(head)

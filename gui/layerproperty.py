@@ -1,7 +1,3 @@
-import sys, time, math, os, os.path
-
-import wx
-
 _ = wx.GetTranslation
 import wx.propgrid as wxpg
 
