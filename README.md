@@ -1,4 +1,4 @@
-# GIS Lite
+# Micro GIS
 A lightweight GIS application based on Mapnik and WxPython. I started this project for the purpose of learning the basics of GIS programming in Python
 
  ## Features
@@ -23,7 +23,7 @@ A lightweight GIS application based on Mapnik and WxPython. I started this proje
  
 To install the script clone the repository and run the script
 ```
-> git clone https://github.com/yemikudaisi/GIS-Lite.git
+> git clone https://github.com/yemikudaisi/Micro-GIS.git
 > cd GIS-Lite
 > python app.py
 ```
