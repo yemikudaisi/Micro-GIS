@@ -35,7 +35,7 @@ except ImportError:  # if it's not there locally, try the wxPython lib.
 
 class MainFrame(wx.Frame):
 
-    def __init__(self, parent, id=-1, title="GIS Lite", pos=wx.DefaultPosition,
+    def __init__(self, parent, id=-1, title="Micro GIS", pos=wx.DefaultPosition,
                  size=(1200, 600), style=wx.DEFAULT_FRAME_STYLE):
 
         wx.Frame.__init__(self, parent, id, title, pos, size, style)
@@ -387,7 +387,7 @@ class IntProperty2(wxpg.PyProperty):
     This is a simple re-implementation of wxIntProperty.
     """
 
-    def __init__(self, label, name=wxpg.LABEL_AS_NAME, value=0):
+    def __init__(self, label, name=wxpg.PG_LABEL_STRING, value=0):
         wxpg.PyProperty.__init__(self, label, name)
         self.SetValue(value)
 
@@ -445,7 +445,7 @@ class SizeProperty(wxpg.PyProperty):
     """ Demonstrates a property with few children.
     """
 
-    def __init__(self, label, name=wxpg.LABEL_AS_NAME, value=wx.Size(0, 0)):
+    def __init__(self, label, name=wxpg.PG_LABEL_STRING, value=wx.Size(0, 0)):
         wxpg.PyProperty.__init__(self, label, name)
 
         value = self._ConvertValue(value)
@@ -500,7 +500,7 @@ class DirsProperty(wxpg.PyArrayStringProperty):
         string and list manipulation facilities.
     """
 
-    def __init__(self, label, name=wxpg.LABEL_AS_NAME, value=[]):
+    def __init__(self, label, name=wxpg.PG_LABEL_STRING, value=[]):
         wxpg.PyArrayStringProperty.__init__(self, label, name, value)
 
         # Set default delimiter
@@ -604,7 +604,7 @@ class PyObjectProperty(wxpg.PyProperty):
           class is allowed.
     """
 
-    def __init__(self, label, name=wxpg.LABEL_AS_NAME, value=None):
+    def __init__(self, label, name=wxpg.PG_LABEL_STRING, value=None):
         wxpg.PyProperty.__init__(self, label, name)
         self.SetValue(value)
 
@@ -699,7 +699,7 @@ class SingleChoiceDialogAdapter(wxpg.PyEditorDialogAdapter):
 
 
 class SingleChoiceProperty(wxpg.PyStringProperty):
-    def __init__(self, label, name=wxpg.LABEL_AS_NAME, value=''):
+    def __init__(self, label, name=wxpg.PG_LABEL_STRING, value=''):
         wxpg.PyStringProperty.__init__(self, label, name, value)
 
         # Prepare choices
@@ -1068,7 +1068,6 @@ class PropertyPanel(wx.Panel):
                                         "Text Not in List"))
 
         pg.Append(wxpg.PropertyCategory("3 - Advanced Properties"))
-        pg.Append(wxpg.DateProperty("Date", value=wx.DateTime_Now()))
         pg.Append(wxpg.FontProperty("Font", value=panel.GetFont()))
         pg.Append(wxpg.ColourProperty("Colour",
                                       value=panel.GetBackgroundColour()))
@@ -1087,8 +1086,6 @@ class PropertyPanel(wx.Panel):
         pg.SetPropertyAttribute("File", wxpg.PG_FILE_SHOW_FULL_PATH, 0)
         pg.SetPropertyAttribute("File", wxpg.PG_FILE_INITIAL_PATH,
                                 "C:\\Program Files\\Internet Explorer")
-        pg.SetPropertyAttribute("Date", wxpg.PG_DATE_PICKER_STYLE,
-                                wx.DP_DROPDOWN | wx.DP_SHOWCENTURY)
 
         pg.Append(wxpg.PropertyCategory("5 - Custom Properties and Editors"))
         pg.Append(IntProperty2("IntProperty2", value=1024))
