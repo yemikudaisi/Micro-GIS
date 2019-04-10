@@ -1,6 +1,8 @@
 # Micro GIS
 A lightweight GIS application based on Mapnik and WxPython. I started this project for the purpose of learning the basics of GIS programming in Python
 
+![App Screenshot](Micro GIS.PNG "Screenshot")
+
  ## Features
  - Map tools toolbar
  - Status bar
